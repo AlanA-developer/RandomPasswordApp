@@ -1,8 +1,10 @@
 <?php
 
-require_once __DIR__ . '/PasswordGenerator.php';
-require_once __DIR__ . '/Encryptor.php';
-require_once __DIR__ . '/ExcelExporter.php';
+require_once __DIR__ . '/vendor/autoload.php';
+
+use App\PasswordGenerator;
+use App\Encryptor;
+use App\ExcelExporter;
 
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
@@ -16,6 +18,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     jsonResponse(['success' => false, 'error' => 'Method Not Allowed.']);
+}
+
+// Simple IP-Based Rate Limiting
+$ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+$limitDir = __DIR__ . '/storage/limits';
+if (!is_dir($limitDir)) {
+    mkdir($limitDir, 0777, true);
+}
+$limitFile = $limitDir . '/' . md5($ip) . '.json';
+$now = time();
+
+$rateLimit = [
+    'hits' => 0,
+    'reset' => $now + 60
+];
+
+if (file_exists($limitFile)) {
+    $data = json_decode(file_get_contents($limitFile), true);
+    if (is_array($data)) {
+        $rateLimit = $data;
+    }
+}
+
+if ($now > $rateLimit['reset']) {
+    $rateLimit['hits'] = 1;
+    $rateLimit['reset'] = $now + 60;
+} else {
+    $rateLimit['hits']++;
+}
+
+file_put_contents($limitFile, json_encode($rateLimit));
+
+if ($rateLimit['hits'] > 45) { // Permit 45 requests per minute
+    http_response_code(429);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'success' => false,
+        'error' => 'Demasiadas solicitudes. Por favor, intenta de nuevo en un minuto.'
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
 $rawBody = file_get_contents('php://input');
@@ -32,9 +74,11 @@ $length = isset($body['length']) ? (int) $body['length'] : 0;
 $type = isset($body['type']) ? trim($body['type']) : 'alphanumeric';
 $method = isset($body['method']) ? strtolower(trim($body['method'])) : 'sha256';
 $aesKey = isset($body['aes_key']) ? trim($body['aes_key']) : '';
+$excludeAmbiguous = isset($body['exclude_ambiguous']) ? (bool) $body['exclude_ambiguous'] : false;
+$strictRules = isset($body['strict_rules']) ? (bool) $body['strict_rules'] : false;
 
 $validTypes = ['numbers', 'letters', 'alphanumeric', 'alphanumeric_symbols'];
-$validMethods = ['md5', 'sha256', 'aes256'];
+$validMethods = ['md5', 'sha256', 'aes256', 'bcrypt', 'argon2id'];
 
 $errors = [];
 
@@ -60,7 +104,7 @@ if (!empty($errors)) {
 }
 
 try {
-    $plains = PasswordGenerator::generateBatch($quantity, $length, $type);
+    $plains = PasswordGenerator::generateBatch($quantity, $length, $type, $excludeAmbiguous, $strictRules);
     $passwords = [];
 
     foreach ($plains as $plain) {

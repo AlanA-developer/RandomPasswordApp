@@ -1,17 +1,18 @@
 <?php
+namespace App;
 
 class Encryptor
 {
-    const SUPPORTED_METHODS = ['md5', 'sha256', 'aes256'];
+    const SUPPORTED_METHODS = ['md5', 'sha256', 'aes256', 'bcrypt', 'argon2id'];
 
     /**
      * Hash/encrypt a plain text password.
      *
      * @param string $plain   The plain text password
-     * @param string $method  md5 | sha256 | aes256
+     * @param string $method  md5 | sha256 | aes256 | bcrypt | argon2id
      * @param string $aesKey  Key used for AES-256 (required only for aes256)
      * @return string
-     * @throws Exception
+     * @throws \Exception
      */
     public static function encrypt(string $plain, string $method, string $aesKey = ''): string
     {
@@ -25,6 +26,15 @@ class Encryptor
             case 'aes256':
                 return self::encryptAES256($plain, $aesKey);
 
+            case 'bcrypt':
+                return password_hash($plain, PASSWORD_BCRYPT);
+
+            case 'argon2id':
+                if (!defined('PASSWORD_ARGON2ID')) {
+                    throw new \RuntimeException('Argon2id is not supported in this PHP installation.');
+                }
+                return password_hash($plain, PASSWORD_ARGON2ID);
+
             default:
                 throw new \InvalidArgumentException("Unsupported encryption method: $method");
         }
@@ -37,7 +47,7 @@ class Encryptor
      * @param string $plain  Plain text
      * @param string $key    Secret key (will be padded/hashed to 32 bytes)
      * @return string        Base64-encoded string: "iv_hex:ciphertext_base64"
-     * @throws Exception
+     * @throws \Exception
      */
     private static function encryptAES256(string $plain, string $key): string
     {

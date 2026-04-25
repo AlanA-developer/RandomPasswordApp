@@ -102,31 +102,33 @@
             </div>
           </div>
 
+          <div class="field-group">
+            <label class="field-label">Opciones Avanzadas</label>
+            <div class="checkbox-group">
+              <label class="checkbox-label" for="opt-exclude-ambiguous">
+                <input type="checkbox" id="opt-exclude-ambiguous" />
+                <span class="checkbox-custom"></span>
+                Omitir caracteres ambiguos (0, O, l, 1, I)
+              </label>
+              <label class="checkbox-label" for="opt-strict">
+                <input type="checkbox" id="opt-strict" />
+                <span class="checkbox-custom"></span>
+                Cumplimiento estricto (letras, núm. y símbolos)
+              </label>
+            </div>
+          </div>
 
           <div class="field-group">
-            <label class="field-label">Método de encriptación</label>
-            <div class="method-cards" role="group" aria-label="Método de hash">
-              <label class="method-card" for="method-sha256">
-                <input type="radio" id="method-sha256" name="method" value="sha256" checked />
-                <span class="method-card-inner">
-                  <span class="method-name">SHA-256</span>
-                  <span class="method-desc">Estándar recomendado</span>
-                </span>
-              </label>
-              <label class="method-card" for="method-md5">
-                <input type="radio" id="method-md5" name="method" value="md5" />
-                <span class="method-card-inner">
-                  <span class="method-name">MD5</span>
-                  <span class="method-desc">Rápido, 128-bit</span>
-                </span>
-              </label>
-              <label class="method-card" for="method-aes256">
-                <input type="radio" id="method-aes256" name="method" value="aes256" />
-                <span class="method-card-inner">
-                  <span class="method-name">AES-256</span>
-                  <span class="method-desc">Cifrado reversible</span>
-                </span>
-              </label>
+            <label for="input-method" class="field-label">Método de encriptación</label>
+            <div class="select-wrapper">
+              <select id="input-method" class="field-select">
+                <option value="sha256" selected>SHA-256 (Estándar recomendado)</option>
+                <option value="md5">MD5 (Rápido, 128-bit)</option>
+                <option value="aes256">AES-256 (Cifrado reversible)</option>
+                <option value="bcrypt">Bcrypt (Seguro para passwords)</option>
+                <option value="argon2id">Argon2id (Ganador de Password Hashing)</option>
+              </select>
+              <span class="select-arrow">▾</span>
             </div>
           </div>
 
@@ -221,6 +223,10 @@
           </div>
 
 
+          <div class="search-wrapper" style="margin-bottom: 16px;">
+            <input type="text" id="search-passwords" class="field-input" placeholder="🔍 Filtrar contraseñas en tiempo real..." style="padding-left: 14px;" />
+          </div>
+
           <div class="pagination-controls" id="pagination-controls">
             <button class="btn-page" id="btn-prev" aria-label="Página anterior">‹</button>
             <span class="page-info" id="page-info">1 / 1</span>
@@ -274,7 +280,7 @@
 
   <div class="toast" id="copy-toast" role="status" aria-live="polite">✓ Copiado al portapapeles</div>
 
-  <script src="./assets/app.js"></script>
+  <script type="module" src="./assets/js/main.js"></script>
 </body>
 
 </html>
