@@ -3,7 +3,10 @@ const API_BASE = './api/index.php';
 export async function fetchPasswords(params) {
   const response = await fetch(`${API_BASE}?action=generate`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      'X-API-KEY': 'master_key_12345'
+    },
     body: JSON.stringify(params),
   });
   return await response.json();
@@ -12,7 +15,10 @@ export async function fetchPasswords(params) {
 export async function fetchExportExcel(params) {
   const response = await fetch(`${API_BASE}?action=export`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      'X-API-KEY': 'master_key_12345'
+    },
     body: JSON.stringify(params),
   });
   return response;

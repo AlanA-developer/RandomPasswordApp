@@ -1,6 +1,6 @@
-# RandomPassword Generator 🔒
+# RandomPasswordApp v2.0 (SaaS Edition) 🚀
 
-**RandomPassword Generator** es una potente aplicación web de nivel profesional diseñada para la generación masiva de contraseñas seguras y temporales. Con un enfoque en la seguridad criptográfica y la experiencia de usuario, esta herramienta permite a administradores de sistemas y desarrolladores generar hasta 30,000 contraseñas de forma simultánea, aplicando diversas reglas de complejidad y métodos de hashing/encriptación.
+**RandomPasswordApp** es una potente aplicación web de nivel profesional (SaaS-ready) diseñada para la generación masiva de contraseñas seguras y temporales. Con un enfoque absoluto en la seguridad criptográfica, privacidad (Zero-Knowledge) y la mejor experiencia de usuario. Esta herramienta permite a administradores de sistemas y desarrolladores generar hasta 30,000 contraseñas de forma simultánea.
 
 ---
 
@@ -8,112 +8,69 @@
 
 ### 🛠️ Configuración Flexible
 - **Generación Masiva:** Permite crear desde 1 hasta 30,000 contraseñas en una sola solicitud.
-- **Longitud Personalizable:** Soporta longitudes de contraseña desde 4 hasta 512 caracteres.
-- **Tipos de Caracteres:**
-  - Solo números.
-  - Solo letras.
-  - Alfanumérico (Letras + Números).
-  - Alfanumérico + Símbolos.
+- **Passphrases (Diceware):** Generación de contraseñas memorables estilo frase, tanto en el servidor como localmente.
+- **Símbolos Personalizados:** Control total sobre qué caracteres especiales están permitidos.
+- **Tipos Clásicos:** Alfanumérico, solo letras, solo números, y alfanumérico + símbolos.
 
-### 🔐 Opciones Avanzadas de Seguridad
-- **Exclusión de Caracteres Ambiguos:** Evita confusiones visuales omitiendo caracteres como `0`, `O`, `l`, `1`, e `I`.
-- **Cumplimiento Estricto:** Asegura que la contraseña contenga al menos un carácter de cada tipo seleccionado (mayúsculas, minúsculas, números, símbolos).
+### 🔐 Privacidad y Seguridad Extrema
+- **Generación Zero-Knowledge:** Una opción de ejecución en el lado del cliente (Navegador) usando `window.crypto.getRandomValues`. Ninguna contraseña viaja a través de la red; privacidad 100% garantizada.
+- **API Keys Estáticas:** El backend está protegido mediante el requerimiento de una cabecera HTTP `X-API-KEY`, evitando abusos en despliegues expuestos a internet.
+- **Zxcvbn (Entropía en Tiempo Real):** Se calcula visualmente la "Fuerza" y el "Tiempo estimado de Crackeo" de cada contraseña individual en la tabla de resultados.
 
 ### 🛡️ Métodos de Encriptación y Hashing
-La aplicación no solo genera las contraseñas, sino que también proporciona su representación segura utilizando los siguientes métodos:
-- **SHA-256:** Estándar de hashing seguro recomendado.
-- **MD5:** Hashing rápido de 128 bits.
+Si decides enviar las contraseñas al servidor, estas regresan con representaciones seguras:
+- **SHA-256, MD5**
 - **AES-256-CBC:** Cifrado reversible (requiere una clave secreta).
-- **Bcrypt:** Algoritmo adaptativo ideal para contraseñas.
-- **Argon2id:** Ganador de la Password Hashing Competition.
+- **Bcrypt & Argon2id:** Ideales para almacenar hashes en bases de datos.
 
-### 📊 Gestión y Exportación
-- **Paginación Integrada:** Visualización fluida de grandes volúmenes de datos directamente en el navegador.
-- **Filtro en Tiempo Real:** Búsqueda instantánea dentro de los resultados generados.
-- **Exportación a Excel:** Descarga un reporte detallado en formato `.xlsx` con el listado completo de contraseñas planas y hasheadas.
+### 📊 Gestión, UI y Exportación
+- **Descargas Locales y Rápidas:** Descarga tus lotes de contraseñas en formato `.xlsx` (vía PHP), o en `JSON` y `.env` de forma ultra rápida y local.
+- **Generador de QR Integrado:** Escanea contraseñas específicas de forma fácil y segura hacia tu smartphone mediante una ventana modal con códigos QR.
+- **Temas Dinámicos:** Soporte nativo para *Modo Oscuro (Glassmorphism)* y *Modo Claro*, recordando tu preferencia.
 
 ---
 
 ## 🛠️ Arquitectura y Tecnologías
 
-El proyecto está dividido en dos capas principales:
-
 ### Frontend (SPA)
-- **HTML5 Semántico** y accesibilidad mejorada.
-- **CSS3 Moderno:** Diseño premium con efectos *Glassmorphism*, variables CSS y total adaptabilidad (Responsive Design).
-- **Vanilla JavaScript (ES6+):** Arquitectura basada en módulos, sin dependencias externas pesadas.
+- **CSS3 Moderno:** Variables CSS, Glassmorphism y temas Claro/Oscuro.
+- **Vanilla JS (ES6+):** Arquitectura modular (`utils.js`, `main.js`, `api.js`, `wordlist.js`).
+- **Integraciones CDN:** `qrcode.js` para los códigos y `zxcvbn.js` para entropía.
 
 ### Backend (API)
-- **PHP 7.4+** para el procesamiento lógico.
-- **Composer:** Gestión de dependencias del servidor.
-- **PhpSpreadsheet:** Biblioteca robusta para la generación de archivos Excel.
-- **Seguridad:** Implementación de *Rate Limiting* basado en IP para prevenir abusos.
+- **PHP 8.3:** Alto rendimiento y tipado estricto.
+- **Composer:** `phpoffice/phpspreadsheet` para Excels.
+- **Seguridad:** Rate Limiting por IP + Validación por Token (API Key).
 
 ---
 
-## 📂 Estructura del Proyecto
+## 🐳 Despliegue con Docker (Recomendado)
 
-```
-RandomPasswordApp/
-├── api/                        # Backend de la aplicación
-│   ├── src/                    # Lógica central en PHP
-│   │   ├── Encryptor.php       # Manejo de hashing y cifrado
-│   │   ├── ExcelExporter.php   # Generación de reportes Excel
-│   │   └── PasswordGenerator.php # Algoritmo de generación segura
-│   ├── storage/                # Almacenamiento temporal (Límites de peticiones)
-│   ├── tests/                  # Pruebas unitarias
-│   ├── index.php               # Punto de entrada de la API
-│   ├── composer.json           # Dependencias de PHP
-│   └── phpunit.xml             # Configuración de pruebas
-├── assets/                     # Recursos estáticos
-│   ├── js/                     # Módulos de JavaScript
-│   └── style.css               # Estilos globales
-├── index.html                  # Interfaz de usuario principal
-└── README.md                   # Documentación del sistema
-```
+La aplicación está completamente "Dockerizada" y lista para producción.
+
+1. **Clona el repositorio** e ingresa al directorio.
+2. Levanta los servicios con Docker Compose:
+   ```bash
+   docker compose up --build -d
+   ```
+3. Visita `http://localhost/` o el puerto que hayas configurado. El entorno correrá bajo Apache/PHP 8.3 de manera aislada.
+4. *Nota:* Por defecto la API Key es `master_key_12345`. Puedes modificarla en el archivo `docker-compose.yml` en la sección `environment: API_KEY`.
 
 ---
 
-## ⚙️ Requisitos e Instalación
+## ⚙️ Instalación Tradicional (XAMPP/WAMP)
 
-### Requisitos Previos
-- Servidor Web (Apache/Nginx) con soporte para **PHP 7.4 o superior**.
-- **Composer** instalado globalmente.
-
-### Pasos para la Instalación
-
-1. **Clonar o copiar el repositorio** en el directorio raíz de tu servidor (ej. `c:\wamp64\www\RandomPasswordApp`).
-2. **Instalar dependencias del Backend:**
-   Navega a la carpeta `api/` y ejecuta:
+1. Mueve el proyecto a tu carpeta `htdocs` o `www`.
+2. Asegúrate de tener **PHP 8.3** (recomendado para compatibilidad de dependencias) y **Composer**.
+3. Navega a `api/` y ejecuta:
    ```bash
    composer install
    ```
-3. **Configurar permisos:**
-   Asegúrate de que la carpeta `api/storage/` tenga permisos de escritura para que el sistema de *Rate Limiting* funcione correctamente.
-
----
-
-## 🧪 Pruebas Unitarias
-
-El proyecto cuenta con pruebas automatizadas para validar la lógica de generación y cifrado. Para ejecutarlas:
-
-1. Accede al directorio `api/`.
-2. Ejecuta el archivo PHPUnit incluido:
-   ```bash
-   php phpunit.phar
-   ```
-
----
-
-## 🛡️ Seguridad y Consideraciones
-
-- **Criptografía Segura:** Las contraseñas se generan utilizando la función `random_bytes()` de PHP, garantizando aleatoriedad criptográficamente segura.
-- **Límites de Uso:** El sistema implementa un bloqueo temporal si se detectan más de 45 peticiones por minuto desde una misma dirección IP.
+4. Define tu variable de entorno `API_KEY` (o modifica `$expectedApiKey` en `api/index.php`).
 
 ---
 
 ## ✒️ Autor
-
 - **Alan A. (Draizce)** — [GitHub](https://github.com/AlanA-developer)
 
 ---

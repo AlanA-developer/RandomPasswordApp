@@ -63,6 +63,19 @@
   --sidebar-width:    360px;
 }
 
+body.light-theme {
+  --bg-base:          #F8F9FA;
+  --bg-surface:       #FFFFFF;
+  --bg-elevated:      #F1F3F5;
+  --bg-hover:         #E9ECEF;
+  --text-primary:     #212529;
+  --text-secondary:   #495057;
+  --text-muted:       #868E96;
+  --glass-bg:         rgba(255, 255, 255, 0.7);
+  --glass-border:     rgba(0, 0, 0, 0.1);
+  --border-subtle:    rgba(0, 0, 0, 0.1);
+  --border-strong:    rgba(0, 0, 0, 0.2);
+}
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 

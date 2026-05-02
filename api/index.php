@@ -20,6 +20,17 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     jsonResponse(['success' => false, 'error' => 'Method Not Allowed.']);
 }
 
+// API Key Validation
+$expectedApiKey = getenv('API_KEY') ?: 'master_key_12345';
+$headers = getallheaders();
+$providedApiKey = $headers['X-API-KEY'] ?? ($headers['x-api-key'] ?? null);
+
+// Require API KEY if it's explicitly set or if it's the default master key
+if ($providedApiKey !== $expectedApiKey) {
+    http_response_code(401);
+    jsonResponse(['success' => false, 'error' => 'Unauthorized. Invalid API Key.']);
+}
+
 // Simple IP-Based Rate Limiting
 $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 $limitDir = __DIR__ . '/storage/limits';
@@ -72,12 +83,13 @@ $action = isset($_GET['action']) ? trim($_GET['action']) : 'generate';
 $quantity = isset($body['quantity']) ? (int) $body['quantity'] : 0;
 $length = isset($body['length']) ? (int) $body['length'] : 0;
 $type = isset($body['type']) ? trim($body['type']) : 'alphanumeric';
+$customSymbols = isset($body['custom_symbols']) ? trim($body['custom_symbols']) : '';
 $method = isset($body['method']) ? strtolower(trim($body['method'])) : 'sha256';
 $aesKey = isset($body['aes_key']) ? trim($body['aes_key']) : '';
 $excludeAmbiguous = isset($body['exclude_ambiguous']) ? (bool) $body['exclude_ambiguous'] : false;
 $strictRules = isset($body['strict_rules']) ? (bool) $body['strict_rules'] : false;
 
-$validTypes = ['numbers', 'letters', 'alphanumeric', 'alphanumeric_symbols'];
+$validTypes = ['numbers', 'letters', 'alphanumeric', 'alphanumeric_symbols', 'passphrase'];
 $validMethods = ['md5', 'sha256', 'aes256', 'bcrypt', 'argon2id'];
 
 $errors = [];
@@ -104,7 +116,7 @@ if (!empty($errors)) {
 }
 
 try {
-    $plains = PasswordGenerator::generateBatch($quantity, $length, $type, $excludeAmbiguous, $strictRules);
+    $plains = PasswordGenerator::generateBatch($quantity, $length, $type, $excludeAmbiguous, $strictRules, $customSymbols);
     $passwords = [];
 
     foreach ($plains as $plain) {

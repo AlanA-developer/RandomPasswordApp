@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:80"
+    environment:
+      - API_KEY=master_key_12345
+    volumes:
+      - .:/var/www/html
+      - /var/www/html/api/vendor

@@ -1,5 +1,5 @@
 import { fetchPasswords, fetchExportExcel, getFilenameFromResponse } from './api.js';
-import { escapeHtml, escapeAttr, formatType, showToast, copyToClipboard } from './utils.js';
+import { escapeHtml, escapeAttr, formatType, showToast, copyToClipboard, generateZeroKnowledge, exportToJson, exportToEnv } from './utils.js';
 
 'use strict';
 
@@ -14,6 +14,18 @@ const inputMethod = document.getElementById('input-method');
 const optExcludeAmbiguous = document.getElementById('opt-exclude-ambiguous');
 const optStrict = document.getElementById('opt-strict');
 const searchPasswords = document.getElementById('search-passwords');
+
+const themeToggle = document.getElementById('theme-toggle');
+const inputCustomSymbols = document.getElementById('input-custom-symbols');
+const customSymbolsGroup = document.getElementById('custom-symbols-group');
+const optZeroKnowledge = document.getElementById('opt-zero-knowledge');
+const btnExportJson = document.getElementById('btn-export-json');
+const btnExportEnv = document.getElementById('btn-export-env');
+
+const qrModal = document.getElementById('qr-modal');
+const closeQrModal = document.getElementById('close-qr-modal');
+const qrcodeContainer = document.getElementById('qrcode-container');
+let currentQrCode = null;
 
 const btnGenerate = document.getElementById('btn-generate');
 const btnExport = document.getElementById('btn-export');
@@ -49,6 +61,27 @@ let allPasswords = [];
 let currentPage = 1;
 let pageSize = parseInt(pageSizeSelect.value, 10);
 
+const currentTheme = localStorage.getItem('theme');
+if (currentTheme === 'light') {
+  document.body.classList.add('light-theme');
+  themeToggle.textContent = '🌙';
+}
+themeToggle.addEventListener('click', () => {
+  document.body.classList.toggle('light-theme');
+  let theme = 'dark';
+  if (document.body.classList.contains('light-theme')) {
+    theme = 'light';
+    themeToggle.textContent = '🌙';
+  } else {
+    themeToggle.textContent = '🌞';
+  }
+  localStorage.setItem('theme', theme);
+});
+
+closeQrModal.addEventListener('click', () => {
+  qrModal.style.display = 'none';
+});
+
 function loadPreferences() {
   try {
     const raw = localStorage.getItem('pwd_app_prefs');
@@ -56,7 +89,10 @@ function loadPreferences() {
     const prefs = JSON.parse(raw);
     if (prefs.quantity) inputQuantity.value = prefs.quantity;
     if (prefs.length) inputLength.value = prefs.length;
-    if (prefs.type) inputType.value = prefs.type;
+    if (prefs.type) {
+      inputType.value = prefs.type;
+      inputType.dispatchEvent(new Event('change'));
+    }
     if (prefs.method) {
       inputMethod.value = prefs.method;
       const event = new Event('change');
@@ -70,6 +106,10 @@ function loadPreferences() {
 }
 
 loadPreferences();
+
+inputType.addEventListener('change', () => {
+  customSymbolsGroup.style.display = inputType.value === 'alphanumeric_symbols' ? 'block' : 'none';
+});
 
 inputMethod.addEventListener('change', () => {
   const isAes = inputMethod.value === 'aes256';
@@ -102,6 +142,14 @@ btnExport.addEventListener('click', async () => {
   await exportExcel(params);
 });
 
+btnExportJson.addEventListener('click', () => {
+  if (allPasswords.length) exportToJson(allPasswords, `passwords_${Date.now()}.json`);
+});
+
+btnExportEnv.addEventListener('click', () => {
+  if (allPasswords.length) exportToEnv(allPasswords, `.env.passwords_${Date.now()}`);
+});
+
 btnPrev.addEventListener('click', () => changePage(currentPage - 1));
 btnNext.addEventListener('click', () => changePage(currentPage + 1));
 btnPrevBottom.addEventListener('click', () => changePage(currentPage - 1));
@@ -123,6 +171,7 @@ function collectParams() {
   const quantity = parseInt(inputQuantity.value, 10);
   const length = parseInt(inputLength.value, 10);
   const type = inputType.value;
+  const customSymbols = inputCustomSymbols.value.trim();
   const method = inputMethod.value;
   const aesKey = inputAesKey.value.trim();
 
@@ -148,9 +197,11 @@ function collectParams() {
     length,
     type,
     method,
+    custom_symbols: customSymbols,
     aes_key: aesKey,
     exclude_ambiguous: optExcludeAmbiguous.checked,
-    strict_rules: optStrict.checked
+    strict_rules: optStrict.checked,
+    zero_knowledge: optZeroKnowledge.checked
   };
 }
 
@@ -177,7 +228,20 @@ async function generatePasswords(params) {
   hideAll();
 
   try {
-    const json = await fetchPasswords(params);
+    let json;
+    if (params.zero_knowledge) {
+      const localData = generateZeroKnowledge(params);
+      json = {
+        success: true,
+        data: localData,
+        count: localData.length,
+        method: 'local_crypto',
+        type: params.type,
+        length: params.length
+      };
+    } else {
+      json = await fetchPasswords(params);
+    }
 
     if (!json.success) {
       const errMsg = json.errors ? json.errors.join(' | ') : (json.error || 'Error desconocido.');
@@ -210,6 +274,8 @@ async function generatePasswords(params) {
     resultsWrapper.style.display = 'block';
     resultsWrapper.classList.add('fade-in');
     btnExport.disabled = false;
+    btnExportJson.disabled = false;
+    btnExportEnv.disabled = false;
 
   } catch (err) {
     showError('No se pudo conectar con el servidor.');
@@ -279,11 +345,36 @@ function renderTable() {
 
   slice.forEach((item, relIndex) => {
     const absIndex = start + relIndex + 1;
+    let strengthHtml = '<span style="color:var(--text-muted); font-size:0.75rem;">N/A</span>';
+    
+    if (typeof zxcvbn === 'function') {
+      const result = zxcvbn(item.plain);
+      const scores = ['Muy débil', 'Débil', 'Justa', 'Fuerte', 'Muy Fuerte'];
+      const colors = ['#FF6B6B', '#FF6B6B', '#FFE66D', '#4ECDC4', '#4ECDC4'];
+      const scoreColor = colors[result.score];
+      const scoreText = scores[result.score];
+      const pct = ((result.score + 1) * 20) + '%';
+      
+      strengthHtml = `
+        <div style="display:flex; flex-direction:column; gap:4px; max-width: 100px;">
+          <span style="font-size:0.75rem; font-weight:600; color:${scoreColor};">${scoreText}</span>
+          <div style="width:100%; height:4px; background:rgba(108, 99, 255, 0.15); border-radius:2px; overflow:hidden;">
+            <div style="width:${pct}; height:100%; background:${scoreColor};"></div>
+          </div>
+          <span style="font-size:0.65rem; color:var(--text-muted);" title="Crack time: ${result.crack_times_display.offline_fast_hashing_1e10_per_second}">${result.crack_times_display.offline_fast_hashing_1e10_per_second}</span>
+        </div>
+      `;
+    }
+
     const row = document.createElement('tr');
     row.innerHTML = `
       <td class="td-index">${absIndex}</td>
       <td class="td-plain">${escapeHtml(item.plain)}</td>
+      <td class="td-strength">${strengthHtml}</td>
       <td class="td-hashed" title="${escapeHtml(item.hashed)}">${escapeHtml(item.hashed)}</td>
+      <td style="text-align:center;">
+        <button class="btn-qr btn-ghost" data-plain="${escapeAttr(item.plain)}" title="Generar QR" style="padding: 2px 6px; font-size: 0.8rem;">QR</button>
+      </td>
       <td style="text-align:center;">
         <button
           class="btn-copy"
@@ -302,6 +393,22 @@ function renderTable() {
     btn.addEventListener('click', () => {
       const text = btn.getAttribute('data-plain');
       copyToClipboard(text, btn, showToast, copyToast);
+    });
+  });
+
+  tableBody.querySelectorAll('.btn-qr').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const text = btn.getAttribute('data-plain');
+      if (currentQrCode) {
+        currentQrCode.clear();
+        qrcodeContainer.innerHTML = '';
+      }
+      currentQrCode = new QRCode(qrcodeContainer, {
+        text: text,
+        width: 180,
+        height: 180,
+      });
+      qrModal.style.display = 'flex';
     });
   });
 
